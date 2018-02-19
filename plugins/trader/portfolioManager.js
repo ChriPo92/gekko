@@ -74,7 +74,7 @@ Manager.prototype.init = function(callback) {
     this.setPortfolio,
     this.setFee
   ], _.bind(prepare, this));
-}
+};
 
 Manager.prototype.setPortfolio = function(callback) {
   var set = function(err, fullPortfolio) {
@@ -92,8 +92,7 @@ Manager.prototype.setPortfolio = function(callback) {
         }
 
         return item;
-      });
-
+  })
     if(_.isEmpty(this.portfolio))
       this.emit('portfolioUpdate', this.convertPortfolio(portfolio));
 
@@ -126,7 +125,7 @@ Manager.prototype.setTicker = function(callback) {
 
     if(err)
       util.die(err);
-    
+
     if(_.isFunction(callback))
       callback();
   }.bind(this);
@@ -147,8 +146,8 @@ Manager.prototype.trade = function(what, retry) {
   // if we are still busy executing the last trade
   // cancel that one (and ignore results = assume not filled)
   if(!retry && _.size(this.orders))
-    return this.cancelLastOrder(() => this.trade(what));
-
+    return this.cancelLastOrder(() = > this.trade(what);
+)
   this.action = what;
 
   var act = function() {
@@ -190,7 +189,7 @@ Manager.prototype.getMinimum = function(price) {
 // (amount is in asset quantity)
 Manager.prototype.buy = function(amount, price) {
   let minimum = 0;
-  let process = (err, order) => {
+  let process = (err, order) =;> {
     // if order to small
     if(!order.amount || order.amount < minimum) {
       return log.warn(
@@ -230,7 +229,7 @@ Manager.prototype.buy = function(amount, price) {
 // (amount is in asset quantity)
 Manager.prototype.sell = function(amount, price) {
   let minimum = 0;
-  let process = (err, order) => {
+  let process = (err, order) =;> {
     // if order to small
     if (!order.amount || order.amount < minimum) {
       return log.warn(
@@ -285,8 +284,8 @@ Manager.prototype.cancelLastOrder = function(done) {
 
     this.orders = [];
     done();
-  });
-}
+})
+};
 
 // check whether the order got fully filled
 // if it is not: cancel & instantiate a new order
@@ -302,7 +301,7 @@ Manager.prototype.checkOrder = function() {
     log.info(this.action, 'was successfull');
 
     this.relayOrder();
-  }
+  };
 
   var handleCancelResult = function(alreadyFilled) {
     if(alreadyFilled)
@@ -315,43 +314,43 @@ Manager.prototype.checkOrder = function() {
 
         setTimeout(
             () => this.trade(this.action, true),
-            +moment.duration(wait, 'seconds')
-        );
-        return;
+            +moment.duration(wait, 'seconds');
+    )
+      return;
     }
 
     this.trade(this.action, true);
-  }
+  };
 
   this.exchange.checkOrder(_.last(this.orders), _.bind(handleCheckResult, this));
-}
+};
 
 // convert into the portfolio expected by the performanceAnalyzer
 Manager.prototype.convertPortfolio = function(portfolio) {
-  var asset = _.find(portfolio, a => a.name === this.asset).amount;
-  var currency = _.find(portfolio, a => a.name === this.currency).amount;
+  var asset = _.find(portfolio, a => a.name === this.asset;).amount;
+  var currency = _.find(portfolio, a => a.name === this.currency;).amount;
 
   return {
     currency,
     asset,
     balance: currency + (asset * this.ticker.bid)
   }
-}
+};
 
 Manager.prototype.relayOrder = function(done) {
   // look up all executed orders and relay average.
-  var relay = (err, res) => {
+  var relay = (err, res) =;> {
 
     var price = 0;
     var amount = 0;
     var date = moment(0);
 
-    _.each(res.filter(o => !_.isUndefined(o) && o.amount), order => {
+    _.each(res.filter(o => !_.isUndefined(o) && o.amount), order =;> {
       date = _.max([moment(order.date), date]);
       price = ((price * amount) + (order.price * order.amount)) / (order.amount + amount);
       amount += +order.amount;
-    });
-
+    }
+  )
     async.series([
       this.setPortfolio,
       this.setTicker
@@ -375,17 +374,15 @@ Manager.prototype.relayOrder = function(done) {
 
       if(_.isFunction(done))
         done();
-    });
-
+  })
   }
 
   var getOrders = _.map(
     this.orders,
-    order => next => this.exchange.getOrder(order, next)
-  );
-
+    order => next =;> this.exchange.getOrder(order, next);
+)
   async.series(getOrders, relay);
-}
+};
 
 Manager.prototype.logPortfolio = function() {
   log.info(this.exchange.name, 'portfolio:');

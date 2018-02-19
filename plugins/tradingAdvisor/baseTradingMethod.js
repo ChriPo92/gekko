@@ -96,7 +96,7 @@ var Base = function(settings) {
 
   if(_.size(this.indicators))
     this.hasSyncIndicators = true;
-}
+};
 
 // teach our base trading method events
 util.makeEventEmitter(Base);
@@ -155,8 +155,8 @@ Base.prototype.tick = function(candle) {
 
     var next = _.after(
       _.size(this.talibIndicators) + _.size(this.tulipIndicators),
-      () => this.propogateTick(candle)
-    );
+      () => this.propogateTick(candle);
+    )
 
     var basectx = this;
 
@@ -166,9 +166,9 @@ Base.prototype.tick = function(candle) {
         util.die('TALIB ERROR:', err);
 
       // fn is bound to indicator
-      this.result = _.mapValues(result, v => _.last(v));
+      this.result = _.mapValues(result, v => _.last(v);)
       next(candle);
-    }
+    };
 
     // handle result from talib
     _.each(
@@ -176,8 +176,8 @@ Base.prototype.tick = function(candle) {
       indicator => indicator.run(
         basectx.candleProps,
         talibResultHander.bind(indicator)
-      )
-    );
+      );
+  )
 
     // handle result from tulip
     var tulindResultHander = function(err, result) {
@@ -185,9 +185,10 @@ Base.prototype.tick = function(candle) {
         util.die('TULIP ERROR:', err);
 
       // fn is bound to indicator
-      this.result = _.mapValues(result, v => _.last(v));
+      this.result = _.mapValues(result, v = > _.last(v);
+    )
       next(candle);
-    }
+    };
 
     // handle result from tulip indicators
     _.each(
@@ -195,12 +196,12 @@ Base.prototype.tick = function(candle) {
       indicator => indicator.run(
         basectx.candleProps,
         tulindResultHander.bind(indicator)
-      )
-    );
+      );
+  )
   }
 
   this.propogateCustomCandle(candle);
-}
+};
 
 // if this is a child process the parent might
 // be interested in the custom candle.
@@ -230,8 +231,8 @@ Base.prototype.propogateTick = function(candle) {
   if(mode === 'realtime'){
     // Subtract number of minutes in current candle for instant start
     let startTimeMinusCandleSize = startTime.clone();
-    startTimeMinusCandleSize.subtract(this.tradingAdvisor.candleSize, "minutes"); 
-    
+    startTimeMinusCandleSize.subtract(this.tradingAdvisor.candleSize, "minutes");
+
     isPremature = candle.start < startTimeMinusCandleSize;
   }
   else{
@@ -256,11 +257,11 @@ Base.prototype.propogateTick = function(candle) {
   var done = this.age === this.processedTicks;
   if(done && this.finishCb)
     this.finishCb();
-}
+};
 
 Base.prototype.processTrade = function(trade) {
   this.onTrade(trade);
-}
+};
 
 Base.prototype.addTalibIndicator = function(name, type, parameters) {
   if(!talib)
@@ -278,7 +279,7 @@ Base.prototype.addTalibIndicator = function(name, type, parameters) {
     run: talib[type].create(parameters),
     result: NaN
   }
-}
+};
 
 Base.prototype.addTulipIndicator = function(name, type, parameters) {
   if(!tulind)
@@ -296,7 +297,7 @@ Base.prototype.addTulipIndicator = function(name, type, parameters) {
     run: tulind[type].create(parameters),
     result: NaN
   }
-}
+};
 
 Base.prototype.addIndicator = function(name, type, parameters) {
   if(!_.contains(allowedIndicators, type))
@@ -308,7 +309,7 @@ Base.prototype.addIndicator = function(name, type, parameters) {
   this.indicators[name] = new Indicators[type](parameters);
 
   // some indicators need a price stream, others need full candles
-}
+};
 
 Base.prototype.advice = function(newPosition, _candle) {
   // ignore soft advice coming from legacy
@@ -335,7 +336,7 @@ Base.prototype.advice = function(newPosition, _candle) {
       candle
     });
   }.bind(this));
-}
+};
 
 // Because the trading method might be async we need
 // to be sure we only stop after all candles are
@@ -354,6 +355,6 @@ Base.prototype.finish = function(done) {
   // we are not done, register cb
   // and call after we are..
   this.finishCb = done;
-}
+};
 
 module.exports = Base;

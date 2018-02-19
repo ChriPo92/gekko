@@ -29,7 +29,7 @@ method.init = function() {
 
   // define the indicators we need
   this.addIndicator('rsi', 'RSI', this.settings);
-}
+};
 
 // for debugging purposes log the last
 // calculated parameters.
@@ -40,7 +40,7 @@ method.log = function(candle) {
   log.debug('calculated RSI properties for candle:');
   log.debug('\t', 'rsi:', rsi.result.toFixed(digits));
   log.debug('\t', 'price:', candle.close.toFixed(digits));
-}
+};
 
 method.check = function() {
   var rsi = this.indicators.rsi;
@@ -100,6 +100,6 @@ method.check = function() {
 
     this.advice();
   }
-}
+};
 
 module.exports = method;
