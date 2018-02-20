@@ -13,28 +13,27 @@ var log = require('../core/log');
 // Let's create our own strat
 var strat = {};
 
+
 // Prepare everything our method needs
 strat.init = function() {
+
   this.input = 'candle';
   this.currentTrend = 'long';
-  this.requiredHistory = 0;
-}
+  this.requiredHistory = 5;
+  this.addPythonIndicator("test", "test", []);
+};
 
 // What happens on every new candle?
 strat.update = function(candle) {
+};
 
-  // Get a random number between 0 and 1.
-  this.randomNumber = Math.random();
 
-  // There is a 10% chance it is smaller than 0.1
-  this.toUpdate = this.randomNumber < 0.1;
-}
 
 // For debugging purposes.
 strat.log = function() {
-  log.debug('calculated random number:');
-  log.debug('\t', this.randomNumber.toFixed(3));
-}
+  //log.debug('calculated random number:');
+
+};
 
 // Based on the newly calculated
 // information, check if we should
@@ -58,6 +57,6 @@ strat.check = function() {
     this.advice('long');
 
   }
-}
+};
 
 module.exports = strat;

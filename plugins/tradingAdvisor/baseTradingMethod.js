@@ -19,6 +19,18 @@ if(tulind == null) {
   log.warn('TULIP indicators could not be loaded, they will be unavailable.');
 }
 
+var python = require(dirs.core + 'python');
+if(python == null) {
+  log.warn('PYTHON indicators could not be loaded, they will be unavailable.');
+}
+
+var py_options = {
+  mode: 'text',
+  pythonPath: '/usr/bin/python3',
+  pythonOptions: ["-u"], // get print results in real-time
+  scriptPath: dirs.plugins + "tradingAdvisor/"
+};
+
 var indicatorsPath = dirs.methods + 'indicators/';
 var indicatorFiles = fs.readdirSync(indicatorsPath);
 var Indicators = {};
@@ -36,6 +48,7 @@ _.each(indicatorFiles, function(indicator) {
 var allowedIndicators = _.keys(Indicators);
 var allowedTalibIndicators = _.keys(talib);
 var allowedTulipIndicators = _.keys(tulind);
+var allowedPythonIndicators = _.keys(python);
 
 var Base = function(settings) {
   _.bindAll(this);
@@ -52,9 +65,12 @@ var Base = function(settings) {
   this.indicators = {};
   this.talibIndicators = {};
   this.tulipIndicators = {};
+  this.pythonIndicators ={};
   this.asyncTick = false;
   this.candlePropsCacheSize = 1000;
   this.deferredTicks = [];
+  this.pythonIO = null;
+  this.connectedToPython = false; //maybe this will be needed at some point
 
   this._prevAdvice;
 
@@ -86,12 +102,32 @@ var Base = function(settings) {
   // let's run the implemented starting point
   this.init();
 
+  log.debug(_.size(this.pythonIndicators), python !== null);
+  if (_.size(this.pythonIndicators) && python !== null) {
+    var io = require("socket.io")(8000);
+    io.on("connection", (socket) => {
+      this.pythonIO = socket;
+      log.info("Python interface connected");
+      this.connectedToPython = true;
+    });
+    io.on("disconnect",  () => {
+      if(this.connectedToPython) this.connectedToPython = false;
+    });
+    /*
+    var pyshell = require("python-shell");
+    pyshell.run("python_server.py", py_options, function (err, res) {
+      if (err) throw err;
+      log.debug(res);
+    })*/
+  }
+
   if(!config.debug || !this.log)
     this.log = function() {};
 
   this.setup = true;
 
-  if(_.size(this.talibIndicators) || _.size(this.tulipIndicators))
+  if(_.size(this.talibIndicators) || _.size(this.tulipIndicators) ||
+     _.size(this.pythonIndicators))
     this.asyncTick = true;
 
   if(_.size(this.indicators))
@@ -105,7 +141,7 @@ Base.prototype.tick = function(candle) {
 
   if(
     this.asyncTick &&
-    this.hasSyncIndicators &&
+    (this.hasSyncIndicators || this.connectedToPython) &&
     this.age !== this.processedTicks
   ) {
     // Gekko will call talib and run strat
@@ -114,6 +150,14 @@ Base.prototype.tick = function(candle) {
     // updated with future candles.
     //
     // See @link: https://github.com/askmike/gekko/issues/837#issuecomment-316549691
+    return this.deferredTicks.push(candle);
+  }
+  if (
+    _.size(this.pythonIndicators) && !this.connectedToPython
+  ){
+    /* if a python indicator is loaded but the connection to the
+    python server is not yet established
+    */
     return this.deferredTicks.push(candle);
   }
 
@@ -154,19 +198,20 @@ Base.prototype.tick = function(candle) {
   } else {
 
     var next = _.after(
-      _.size(this.talibIndicators) + _.size(this.tulipIndicators),
-      () => this.propogateTick(candle);
-    )
+      _.size(this.talibIndicators) + _.size(this.tulipIndicators) +
+      _.size(this.pythonIndicators),
+      () => this.propogateTick(candle)
+    );
 
     var basectx = this;
 
     // handle result from talib
-    var talibResultHander = function(err, result) {
+    var talibResultHandler = function(err, result) {
       if(err)
         util.die('TALIB ERROR:', err);
 
       // fn is bound to indicator
-      this.result = _.mapValues(result, v => _.last(v);)
+      this.result = _.mapValues(result, v => _.last(v));
       next(candle);
     };
 
@@ -175,18 +220,17 @@ Base.prototype.tick = function(candle) {
       this.talibIndicators,
       indicator => indicator.run(
         basectx.candleProps,
-        talibResultHander.bind(indicator)
-      );
-  )
+        talibResultHandler.bind(indicator)
+      )
+  );
 
     // handle result from tulip
-    var tulindResultHander = function(err, result) {
+    var tulindResultHandler = function(err, result) {
       if(err)
         util.die('TULIP ERROR:', err);
 
       // fn is bound to indicator
-      this.result = _.mapValues(result, v = > _.last(v);
-    )
+      this.result = _.mapValues(result, v => _.last(v));
       next(candle);
     };
 
@@ -195,9 +239,30 @@ Base.prototype.tick = function(candle) {
       this.tulipIndicators,
       indicator => indicator.run(
         basectx.candleProps,
-        tulindResultHander.bind(indicator)
-      );
-  )
+        tulindResultHandler.bind(indicator)
+      )
+  );
+    // handle results from python indicators
+    var pythonResultHandler = function (err, result) {
+      if (err){
+        util.die("PYTHON ERROR:", err);
+      }
+      log.debug("Result Handler " + err + " " + result);
+      //fn is bound to indicator
+      this.result = _.mapValues(result, v => _.last(v));
+      next(candle)
+    };
+    // handle result from python indicators
+
+
+    _.each(
+      this.pythonIndicators,
+      indicator => indicator.run(
+        this.pythonIO,
+        basectx.candleProps,
+        pythonResultHandler.bind(indicator)
+    ))
+
   }
 
   this.propogateCustomCandle(candle);
@@ -247,7 +312,7 @@ Base.prototype.propogateTick = function(candle) {
 
   if(
     this.asyncTick &&
-    this.hasSyncIndicators &&
+    (this.hasSyncIndicators || this.connectedToPython)&&
     this.deferredTicks.length
   ) {
     return this.tick(this.deferredTicks.shift())
@@ -299,6 +364,24 @@ Base.prototype.addTulipIndicator = function(name, type, parameters) {
   }
 };
 
+Base.prototype.addPythonIndicator = function(name, type, parameters) {
+  if(!python)
+    util.die('Python indicators are not enabled');
+
+  //if(!_.contains(allowedPythonIndicators, type))
+    //util.die('I do not know the python indicator ' + type);
+
+  if(this.setup)
+    util.die('Can only add python indicators in the init method!');
+
+  var basectx = this;
+
+  this.pythonIndicators[name] = {
+    run: python[type].create(parameters),
+    result: NaN
+  }
+};
+
 Base.prototype.addIndicator = function(name, type, parameters) {
   if(!_.contains(allowedIndicators, type))
     util.die('I do not know the indicator ' + type);
@@ -342,6 +425,9 @@ Base.prototype.advice = function(newPosition, _candle) {
 // to be sure we only stop after all candles are
 // processed.
 Base.prototype.finish = function(done) {
+  log.debug("gekko tries to finish");
+  log.debug(this.age , this.processedTicks);
+  log.debug(this.deferredTicks);
   if(!this.asyncTick) {
     this.end();
     return done();
@@ -349,7 +435,12 @@ Base.prototype.finish = function(done) {
 
   if(this.age === this.processedTicks) {
     this.end();
+    if(this.connectedToPython) {
+      this.pythonIO.emit("terminate");
+      this.connectedToPython = false;
+    }
     return done();
+
   }
 
   // we are not done, register cb
