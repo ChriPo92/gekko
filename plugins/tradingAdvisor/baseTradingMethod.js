@@ -106,12 +106,21 @@ var Base = function(settings) {
   if (_.size(this.pythonIndicators) && python !== null) {
     var io = require("socket.io")(8000);
     io.on("connection", (socket) => {
+      socket.on("disconnect",  (reason) => {
+        // TODO: check if this was expected to happen, if not restart server or retry connection
+        log.debug("Python Server disconnected because: " + reason);
+        if(this.connectedToPython) this.connectedToPython = false;
+      });
+      socket.on('error', (error) => {
+        log.debug(error);
+      });
+      socket.emit("connection"); // for some reason this has to be emitted manually
       this.pythonIO = socket;
       log.info("Python interface connected");
       this.connectedToPython = true;
-    });
-    io.on("disconnect",  () => {
-      if(this.connectedToPython) this.connectedToPython = false;
+      // if there are deferred ticks, handle them
+      if(_.size(this.deferredTicks))
+        this.tick(this.deferredTicks.shift())
     });
     /*
     var pyshell = require("python-shell");
@@ -247,9 +256,9 @@ Base.prototype.tick = function(candle) {
       if (err){
         util.die("PYTHON ERROR:", err);
       }
-      log.debug("Result Handler " + err + " " + result);
+      //log.debug("Result Handler " + err + " " + result);
       //fn is bound to indicator
-      this.result = _.mapValues(result, v => _.last(v));
+      this.result = result;
       next(candle)
     };
     // handle result from python indicators
@@ -427,7 +436,7 @@ Base.prototype.advice = function(newPosition, _candle) {
 Base.prototype.finish = function(done) {
   log.debug("gekko tries to finish");
   log.debug(this.age , this.processedTicks);
-  log.debug(this.deferredTicks);
+  //log.debug(this.deferredTicks);
   if(!this.asyncTick) {
     this.end();
     return done();
@@ -445,7 +454,16 @@ Base.prototype.finish = function(done) {
 
   // we are not done, register cb
   // and call after we are..
+  //log.debug(this.pythonIO);
   this.finishCb = done;
+  if (_.size(this.deferredTicks) && !this.connectedToPython && _.size(this.pythonIndicators)) {
+    // there are still ticks to be worked
+    util.die("PYTHON ERROR: Connection unintentionally severed")
+    // TODO: work something out for when the python server unexpectedly quits
+    // TODO: reboot server if it is not running
+    // TODO: check if the ordering of the ticks is inevitably always the same
+    //return this.tick(this.deferredTicks.shift())
+  }
 };
 
 module.exports = Base;

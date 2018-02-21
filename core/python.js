@@ -19,14 +19,14 @@ var execute = function(socket, callback, params) {
   var pythonCallback = function(pythonReturn) {
     var err = pythonReturn["err"],
       res = pythonReturn["res"];
-    log.debug("pythonCallback " + err + " " + res);
+    //log.debug("pythonCallback " + err + " " + res);
     if(err) return callback(err);
     callback(null, res);
   };
-
-
-  socket.emit("node-message", params);
-  log.debug("node-message send");
+  // TODO: multiple Python Indicators probably don't work due to different execution times in python
+  // if the emitter sends a callback this could also be executed somewhere; change null
+  socket.emit("node-message", params, null);
+  //log.debug("node-message send");
   socket.once("python-message", pythonCallback);
 };
 
