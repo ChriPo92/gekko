@@ -14,13 +14,14 @@ try {
 var pyError = 'Gekko was unable to configure python indicator:\n\t';
 
 // Wrapper that executes a python indicator
-var execute = function(socket, callback, params) {
-  // talib callback style since talib-v1.0.3
+var execute = (ctx, callback, params) => {
+  // this is the baseTradingMethod, because arrow functions
+  let socket = ctx.pythonIO;
   var pythonCallback = function(pythonReturn) {
     var err = pythonReturn["err"],
       res = pythonReturn["res"];
     //log.debug("pythonCallback " + err + " " + res);
-    if(err) return callback(err);
+    if(err) return callback(err, null);
     callback(null, res);
   };
   // TODO: multiple Python Indicators probably don't work due to different execution times in python
@@ -52,7 +53,8 @@ methods.test = {
   requires: [],
   create: (params) => {
     verifyParams('test', params);
-    return (socket, data, callback) => execute(socket, callback, {
+    // TODO: find out why .bind(ctx) does not work here
+    return (data, callback) => execute(params["ctx"], callback, {
       name: "test",
       startIdx: 0,
       endIdx: data.close.length - 1,

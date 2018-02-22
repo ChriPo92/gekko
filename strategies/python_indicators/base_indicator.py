@@ -97,4 +97,5 @@ class KerasNetwork(BaseIndicator):
         a simple model.predict(full_data) is not enough. This most likely
         involves adding custom scaling mechanism depending on the model used.
         """
+        #  TODO: make the scaling automatic or develop some kind of standard
         raise NotImplementedError

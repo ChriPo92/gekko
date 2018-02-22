@@ -267,7 +267,6 @@ Base.prototype.tick = function(candle) {
     _.each(
       this.pythonIndicators,
       indicator => indicator.run(
-        this.pythonIO,
         basectx.candleProps,
         pythonResultHandler.bind(indicator)
     ))
@@ -384,7 +383,7 @@ Base.prototype.addPythonIndicator = function(name, type, parameters) {
     util.die('Can only add python indicators in the init method!');
 
   var basectx = this;
-
+  parameters["ctx"] = this;
   this.pythonIndicators[name] = {
     run: python[type].create(parameters),
     result: NaN
@@ -449,13 +448,19 @@ Base.prototype.finish = function(done) {
       this.connectedToPython = false;
     }
     return done();
-
   }
-
+  // this prevents the tradingMethod to exit without terminating the PythonServer
+  let hybridCallback = () => {
+    if(this.connectedToPython) {
+      this.pythonIO.emit("terminate");
+      this.connectedToPython = false;
+    }
+    done()
+  };
   // we are not done, register cb
   // and call after we are..
   //log.debug(this.pythonIO);
-  this.finishCb = done;
+  this.finishCb = hybridCallback;
   if (_.size(this.deferredTicks) && !this.connectedToPython && _.size(this.pythonIndicators)) {
     // there are still ticks to be worked
     util.die("PYTHON ERROR: Connection unintentionally severed")
