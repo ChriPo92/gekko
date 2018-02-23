@@ -75,6 +75,7 @@ var Base = function(settings) {
   this._prevAdvice;
 
   this.candleProps = {
+    timestamp: [],
     open: [],
     high: [],
     low: [],
@@ -147,7 +148,6 @@ var Base = function(settings) {
 util.makeEventEmitter(Base);
 
 Base.prototype.tick = function(candle) {
-
   if(
     this.asyncTick &&
     (this.hasSyncIndicators || this.connectedToPython) &&
@@ -173,6 +173,7 @@ Base.prototype.tick = function(candle) {
   this.age++;
 
   if(this.asyncTick) {
+    this.candleProps.timestamp.push(candle.start.unix());
     this.candleProps.open.push(candle.open);
     this.candleProps.high.push(candle.high);
     this.candleProps.low.push(candle.low);
@@ -182,6 +183,7 @@ Base.prototype.tick = function(candle) {
     this.candleProps.trades.push(candle.trades);
 
     if(this.age > this.candlePropsCacheSize) {
+      this.candleProps.timestamp.shift();
       this.candleProps.open.shift();
       this.candleProps.high.shift();
       this.candleProps.low.shift();

@@ -25,6 +25,7 @@ strat.init = function() {
 
 // What happens on every new candle?
 strat.update = function(candle) {
+  log.debug(this.pythonIndicators["test"].result)
 };
 
 

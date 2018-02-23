@@ -36,10 +36,10 @@ _.forEach({"gekko": Indicators, "talib": talib, "tulip": tulind, "python": pytho
     log.warn(key.toUpperCase() + " indicators could not be loaded, they will be unavailable.");
   }
   allIndicators[key] = {
-    "name": key,
-    "lib": value,
-    "allowed": _.keys(value),
-    "registered": {}
+    name: key,
+    lib: value,
+    allowed: _.keys(value),
+    registered: {}
   }
 });
 
@@ -78,9 +78,9 @@ var Base = function(settings) {
   this.candlePropsCacheSize = 1000;
   this.deferredTicks = [];
   this.pythonConnection = {
-    "IOServer": null,
-    "IOSocket": null,
-    "connected": false
+    IOServer: null,
+    IOSocket: null,
+    connected: false
   };
 
   // register the references to the indicators object

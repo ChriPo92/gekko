@@ -9,6 +9,7 @@ from socketIO_client_nexus import SocketIO, LoggingNamespace
 import numpy as np
 import pandas as pd
 import time
+from datetime import datetime
 sys.path.insert(0, '../../strategies')
 import python_indicators as pyind
 
@@ -18,7 +19,7 @@ def on_connect():
     global lstm
     print('connect')
     lstm = pyind.TestLSTM()
-    print(lstm)
+
 
 
 def on_disconnect():
@@ -32,11 +33,13 @@ def on_reconnect():
 
 def on_node_message(params, callback):
     df = pd.DataFrame(params)
-    result = lstm.calculate(df)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+    error, result = lstm.calculate(df)
+    print(error, result)
     if result is not None:
         result = float(result)
 #    print('on_aaa_response', type(result))
-    socketIO.emit('python-message', {"err": None, "res": result})
+    socketIO.emit('python-message', {"err": error, "res": result})
 
 
 def exit_IO():

@@ -58,10 +58,14 @@ methods.test = {
       name: "test",
       startIdx: 0,
       endIdx: data.close.length - 1,
+      timestamp: data.timestamp,
       open: data.open,
       high: data.high,
       low: data.low,
-      close: data.close
+      close: data.close,
+      vwp: data.vwp,
+      volume: data.volume,
+      trades: data.trades
     });
   }
 }
