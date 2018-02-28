@@ -271,6 +271,7 @@ Base.prototype.tick = function(candle) {
       indicator => indicator.run(
         basectx.candleProps,
         pythonResultHandler.bind(indicator)
+        // "this" has to be bound here to access it in the python indicator
     ))
 
   }
@@ -465,6 +466,7 @@ Base.prototype.finish = function(done) {
   this.finishCb = hybridCallback;
   if (_.size(this.deferredTicks) && !this.connectedToPython && _.size(this.pythonIndicators)) {
     // there are still ticks to be worked
+    log.debug("killing in the name of finish");
     util.die("PYTHON ERROR: Connection unintentionally severed")
     // TODO: work something out for when the python server unexpectedly quits
     // TODO: reboot server if it is not running

@@ -68,7 +68,20 @@ methods.test = {
       trades: data.trades
     });
   }
-}
+};
+
+methods.PoloniexNN = {
+  requires: ["period", "inputTimesteps"],
+  create: (params) => {
+  verifyParams('PoloniexNN', params);
+  // TODO: find out why .bind(ctx) does not work here
+  //this.pythonIO.emit("initiate-method", params); this does not work yet
+  return (data, callback) => execute(params["ctx"], callback, {
+    name: "PoloniexNN",
+    timestamp: data.timestamp
+    });
+  }
+};
 
 
 module.exports = methods;

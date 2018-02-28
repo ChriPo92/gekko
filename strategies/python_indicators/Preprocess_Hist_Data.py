@@ -32,7 +32,6 @@ class pandas_MinMaxScaler(prep.MinMaxScaler):
         return ret
 
     def inverse_transform(self, X):
-        print(X.shape)
         ret = super().inverse_transform(X)
         if isinstance(X, pd.DataFrame):
             ret = pd.DataFrame(ret, index=X.index, columns=X.columns)
@@ -56,7 +55,7 @@ class pandas_MinMaxScaler(prep.MinMaxScaler):
                              names=["coin", "date"]).unstack(0)
 
 
-def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
+def series_to_supervised(data, n_in=1, dropnan=True):
     if not isinstance(data, pd.DataFrame):
         df = pd.DataFrame(data)
     else:
@@ -64,16 +63,12 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     n_vars = df.shape[1]
     cols, names = list(), list()
     # input sequence (t-n, ... t-1)
-    for i in range(n_in, 0, -1):
+    for i in range(n_in-1, -1, -1):
         cols.append(df.shift(i))
-        names += [("t-%d" % i, '%s' % j) for j in df.columns.values]
-    # forecast sequence (t, t+1, ... t+n)
-    for i in range(0, n_out):
-        cols.append(df.shift(-i))
         if i == 0:
             names += [("t", '%s' % j) for j in df.columns.values]
         else:
-            names += [("t+%d" % i, '%s' % j) for j in df.columns.values]
+            names += [("t-%d" % i, '%s' % j) for j in df.columns.values]
     # put it all together
     agg = pd.concat(cols, axis=1)
     index = pd.MultiIndex.from_tuples(names, names=("time", "coin"))
@@ -84,15 +79,14 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
     return agg.stack(level=["time", "coin"]).to_xarray()
 
 
-def seperate_X_y(da, inpt_ftrs=[], outpt_ftrs=[]):
+def select_features(da, inpt_ftrs=[], outpt_ftrs=[]):
     if not isinstance(da, xa.DataArray):
         return
-    y_times, x_times = ["t"], []
-    for time in da.coords["time"].values:
-        if "-" in time:
-            x_times.append(time)
-        elif "+" in time:
-            y_times.append(time)
+    # time t is not used as forecast data in real
+    # time application, therefore it is taken as X column. This can should be
+    # taken into account when training networks. There time t can be used as
+    # future value already.
+    x_times = da.coords["time"].values
     if len(inpt_ftrs):
         x_coins = []
         for ftr in inpt_ftrs:
@@ -100,30 +94,18 @@ def seperate_X_y(da, inpt_ftrs=[], outpt_ftrs=[]):
                 x_coins.append(ftr)
     else:
         x_coins = da.coords["coin"].values
-    if len(outpt_ftrs):
-        y_coins = []
-        for ftr in outpt_ftrs:
-            if ftr in da.coords["coin"].values:
-                y_coins.append(ftr)
-    else:
-        y_coins = da.coords["coin"].values
-    y = da.sel(coin=y_coins, time=y_times)
-    y_df = y.to_dataframe(name="y").unstack([1, 2])
-    y_df.columns = y_df.columns.droplevel()
     X = da.sel(coin=x_coins, time=x_times)
-    return X, y_df
+    return X
 
 
-def prep_hist_poloniex_data(df, past_timesteps, future_timesteps,
-                            input_features, output_features,
-                            scaler):
+def prep_hist_poloniex_data(df, past_timesteps, input_features,
+                            output_features, scaler):
     if df.isnull().sum().sum() > 0:
         raise ValueError("NaNs in Data")
     scaled_df = pd.DataFrame(scaler.transform(df), index=df.index,
                              columns=df.columns)
-    supervised_da = series_to_supervised(scaled_df, past_timesteps,
-                                         future_timesteps)
-    X, y = seperate_X_y(supervised_da, outpt_ftrs=output_features,
+    supervised_da = series_to_supervised(scaled_df, past_timesteps)
+    X = select_features(supervised_da, outpt_ftrs=output_features,
                         inpt_ftrs=input_features)
-    return X, y
+    return X
 

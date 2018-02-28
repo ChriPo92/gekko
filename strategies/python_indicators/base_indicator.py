@@ -18,6 +18,9 @@ def isAscending(the_list):
     else:
         return True
 
+def fromTimestampToSec(df):
+    return np.array([time[1].timestamp() for time in df.iteritems()])
+
 class BaseIndicator(object):
     """
     Base for all Python indicators. All indicators should inherit from
@@ -49,14 +52,14 @@ class BaseIndicator(object):
 
 
 class KerasNetwork(BaseIndicator):
-    def __init__(self, inpt_tmstps, outpt_tmstps, period, rel_model_path,
+    def __init__(self, inpt_tmstps, period, rel_model_path, outpt_tmstps=1, 
                  only_gekko_candles=True, candle_cols=None, parameters=[]):
         all_candle_cols = ['close', 'endIdx', 'high', 'low', 'name',
                            'open', 'startIdx']
         self.only_gekko_candles = only_gekko_candles
         self.parameters = parameters
         self.input_steps = inpt_tmstps
-        self.output_steps = outpt_tmstps
+        self.output_steps = outpt_tmstps # not needed yet
         self.period = period
         abs_model_path = osp.join(osp.dirname(osp.realpath(__file__)),
                                   rel_model_path)
@@ -88,11 +91,10 @@ class KerasNetwork(BaseIndicator):
     def _check_incoming_candle(self, candle):
         if not isAscending(candle["timestamp"]):
             print("ERROR")
-            return (ValueError("Timestamps not ascending"), None)
-        periods = candle["timestamp"].diff().view('int64')
-        periods = periods // pd.Timedelta(1, unit='s')
-        if any(periods[1:] != self.period):
-            return (ValueError("Period does not fit tick intreval"), None)
+            return ("Timestamps not ascending", None)
+        periods = np.diff(fromTimestampToSec(candle["timestamp"]))
+        if any(periods != self.period):
+            return ("Period does not fit tick intreval", None)
         return (None, None)
 
     def _get_needed_data(self, candle):

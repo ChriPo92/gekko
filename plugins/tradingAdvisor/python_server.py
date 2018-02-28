@@ -12,14 +12,20 @@ import time
 from datetime import datetime
 sys.path.insert(0, '../../strategies')
 import python_indicators as pyind
+from python_indicators import pandas_MinMaxScaler
 
-lstm = None
+method = None
+
 
 def on_connect():
-    global lstm
     print('connect')
-    lstm = pyind.TestLSTM()
+    global method
+    method = pyind.PoloniexLSTM(30, 3, 1800)
 
+def initiate_method(params):
+    global method
+    print(params)
+    method = pyind.PoloniexLSTM(30, 3, 1800)
 
 
 def on_disconnect():
@@ -33,13 +39,13 @@ def on_reconnect():
 
 def on_node_message(params, callback):
     df = pd.DataFrame(params)
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
-    error, result = lstm.calculate(df)
-    print(error, result)
-    if result is not None:
-        result = float(result)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s", utc=True)
+    print(df)
+    error, result = method.calculate(df)
+#    if result is not None:
+#        result = float(result)
 #    print('on_aaa_response', type(result))
-    socketIO.emit('python-message', {"err": error, "res": result})
+    socketIO.emit('python-message', {"err": error, "res": result.to_json()})
 
 
 def exit_IO():
@@ -53,6 +59,7 @@ try:
     socketIO.on('disconnect', on_disconnect)
     socketIO.on('reconnect', on_reconnect)
     socketIO.on("terminate", exit_IO)
+    socketIO.on("initiate-method", initiate_method)
     
     # Listen
     aaa = None

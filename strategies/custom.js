@@ -20,7 +20,7 @@ strat.init = function() {
   this.input = 'candle';
   this.currentTrend = 'long';
   this.requiredHistory = 5;
-  this.addPythonIndicator("test", "test", []);
+  this.addPythonIndicator("test", "PoloniexNN", {"period": 1800, "inputTimesteps": 30});
 };
 
 // What happens on every new candle?

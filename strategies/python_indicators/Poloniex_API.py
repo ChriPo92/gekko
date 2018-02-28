@@ -45,15 +45,16 @@ class poloniex:
                 start = req["start"].timestamp()
                 end = req["end"].timestamp()
             else:
-                start = datetime.strptime(str(req['start']),
-                                          '%Y-%m-%d').timestamp()
-                end = datetime.strptime(str(req['end']), 
-                                        '%Y-%m-%d') if str(req['end']) != "now" else datetime.now()
-                end = end.timestamp()
+#                print(pd.to_datetime(str(req['start']), unit="s").timestamp())
+#                print(pd.to_datetime(str(req['start']), unit="s", utc=True).timestamp())
+                start = int(pd.to_datetime(str(req['start']), unit="s",
+                                           utc=True).timestamp())
+                end = int(pd.to_datetime(str(req['end']), unit="s",
+                                         utc=True).timestamp())
             ret = pd.read_json(public + command +
                                "&currencyPair={}&start={}&end={}&period={}".format(req["currencyPair"],
                                start, end, req['period']))
-            return ret.set_index(pd.to_datetime(ret["date"]))
+            return ret.set_index(pd.to_datetime(ret["date"], utc=True))
         else:
             # TODO: This probably won't work
             req['command'] = command
