@@ -49,3 +49,6 @@ config-*.js
 private-*.js
 private-*.toml
 SECRET-api-keys.json
+*.pyc
+strategies/python_indicators/__pycache__
+strategies/python_indicators/__pycache__/**
